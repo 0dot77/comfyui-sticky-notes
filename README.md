@@ -15,7 +15,7 @@ Figma/Miro 스타일의 스티키 노트 확장 기능입니다. 워크플로우
 ### Git Clone (권장)
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/YOUR_USERNAME/comfyui-sticky-notes.git
+git clone https://github.com/0dot77/comfyui-sticky-notes.git
 ```
 
 ### 수동 설치
@@ -69,19 +69,6 @@ git clone https://github.com/YOUR_USERNAME/comfyui-sticky-notes.git
    ```
    sticky-notes loaded - overlay attached to canvas parent
    ```
-
-## 문제 해결
-
-### 노트가 보이지 않음
-- 브라우저 개발자 도구의 Network 탭에서 CSS 로드 확인
-- 콘솔에서 에러 메시지 확인
-
-### T + 클릭이 작동하지 않음
-- 다른 확장과 단축키 충돌 가능
-- 입력 필드에 포커스가 없는지 확인
-
-### 워크플로우 로드 시 노트가 없음
-- 노트가 있는 상태에서 워크플로우를 다시 저장
 
 ## 라이선스
 

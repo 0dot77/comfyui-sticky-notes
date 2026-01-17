@@ -809,40 +809,242 @@ function removeNote(noteId) {
 // Track if 'T' key is held down
 let isTKeyHeld = false;
 
+// Clipboard for copy/paste
+let clipboardNote = null;
+
+/**
+ * Copy the selected note to clipboard
+ */
+function copySelectedNote() {
+    const note = getSelectedNote();
+    if (!note) return;
+
+    clipboardNote = {
+        width: note.width,
+        height: note.height,
+        text: note.text,
+        color: note.color
+    };
+}
+
+/**
+ * Paste note from clipboard
+ */
+function pasteNote() {
+    if (!clipboardNote) return;
+
+    // Get current canvas center for paste position
+    const ds = app.canvas.ds;
+    const canvasRect = canvasEl.getBoundingClientRect();
+    const centerScreenX = canvasRect.width / 2;
+    const centerScreenY = canvasRect.height / 2;
+
+    // Convert to canvas coordinates
+    const canvasX = centerScreenX / ds.scale - ds.offset[0];
+    const canvasY = centerScreenY / ds.scale - ds.offset[1];
+
+    // Convert back to screen for placement
+    const screenPos = canvasToScreen(canvasX, canvasY);
+
+    // Create new note from clipboard data
+    const noteId = ++noteIdCounter;
+
+    const note = document.createElement('div');
+    note.className = 'sticky-note';
+    note.dataset.noteId = noteId;
+
+    const header = document.createElement('div');
+    header.className = 'sticky-note-header';
+
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'sticky-note-drag-handle';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'sticky-note-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeNote(noteId);
+    });
+
+    header.appendChild(dragHandle);
+    header.appendChild(closeBtn);
+
+    const content = document.createElement('div');
+    content.className = 'sticky-note-content';
+    content.contentEditable = 'false';
+    content.textContent = clipboardNote.text;
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'sticky-note-resize';
+
+    note.appendChild(header);
+    note.appendChild(content);
+    note.appendChild(resizeHandle);
+
+    // Position and size
+    const scale = ds.scale;
+    note.style.left = `${screenPos.x}px`;
+    note.style.top = `${screenPos.y}px`;
+    note.style.width = `${clipboardNote.width}px`;
+    note.style.minHeight = `${clipboardNote.height}px`;
+    note.style.transform = `scale(${scale})`;
+    note.style.transformOrigin = 'top left';
+
+    const noteData = {
+        id: noteId,
+        element: note,
+        canvasX: canvasX,
+        canvasY: canvasY,
+        width: clipboardNote.width,
+        height: clipboardNote.height,
+        text: clipboardNote.text,
+        color: clipboardNote.color,
+        createdAt: Date.now(),
+        isEditing: false
+    };
+    stickyNotes.push(noteData);
+
+    const colorPicker = createColorPicker(noteData);
+    header.insertBefore(colorPicker, closeBtn);
+
+    applyNoteColor(note, clipboardNote.color);
+    setupNoteEventHandlers(noteData, header, content);
+    setupResizeHandlers(noteData, resizeHandle);
+
+    overlay.appendChild(note);
+    renderNoteContent(noteData);
+    selectNote(noteId);
+}
+
+/**
+ * Duplicate the selected note (copy + paste at offset)
+ */
+function duplicateSelectedNote() {
+    const note = getSelectedNote();
+    if (!note) return;
+
+    // Create new note with offset
+    const offset = 20; // pixels offset in canvas coordinates
+    const ds = app.canvas.ds;
+
+    const canvasX = note.canvasX + offset;
+    const canvasY = note.canvasY + offset;
+    const screenPos = canvasToScreen(canvasX, canvasY);
+
+    const noteId = ++noteIdCounter;
+
+    const newNote = document.createElement('div');
+    newNote.className = 'sticky-note';
+    newNote.dataset.noteId = noteId;
+
+    const header = document.createElement('div');
+    header.className = 'sticky-note-header';
+
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'sticky-note-drag-handle';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'sticky-note-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeNote(noteId);
+    });
+
+    header.appendChild(dragHandle);
+    header.appendChild(closeBtn);
+
+    const content = document.createElement('div');
+    content.className = 'sticky-note-content';
+    content.contentEditable = 'false';
+    content.textContent = note.text;
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'sticky-note-resize';
+
+    newNote.appendChild(header);
+    newNote.appendChild(content);
+    newNote.appendChild(resizeHandle);
+
+    const scale = ds.scale;
+    newNote.style.left = `${screenPos.x}px`;
+    newNote.style.top = `${screenPos.y}px`;
+    newNote.style.width = `${note.width}px`;
+    newNote.style.minHeight = `${note.height}px`;
+    newNote.style.transform = `scale(${scale})`;
+    newNote.style.transformOrigin = 'top left';
+
+    const noteData = {
+        id: noteId,
+        element: newNote,
+        canvasX: canvasX,
+        canvasY: canvasY,
+        width: note.width,
+        height: note.height,
+        text: note.text,
+        color: note.color,
+        createdAt: Date.now(),
+        isEditing: false
+    };
+    stickyNotes.push(noteData);
+
+    const colorPicker = createColorPicker(noteData);
+    header.insertBefore(colorPicker, closeBtn);
+
+    applyNoteColor(newNote, note.color);
+    setupNoteEventHandlers(noteData, header, content);
+    setupResizeHandlers(noteData, resizeHandle);
+
+    overlay.appendChild(newNote);
+    renderNoteContent(noteData);
+    selectNote(noteId);
+}
+
 /**
  * Set up keyboard listeners
  */
 function setupKeyboardListeners() {
     globalKeyDownHandler = (e) => {
-        // T key for creating notes
-        if (e.key === 't' || e.key === 'T') {
-            // Don't trigger if user is typing in an input or the note content
-            const activeEl = document.activeElement;
-            const isTyping = activeEl && (
-                activeEl.tagName === 'INPUT' ||
-                activeEl.tagName === 'TEXTAREA' ||
-                activeEl.contentEditable === 'true'
-            );
+        // Check if user is typing
+        const activeEl = document.activeElement;
+        const isTyping = activeEl && (
+            activeEl.tagName === 'INPUT' ||
+            activeEl.tagName === 'TEXTAREA' ||
+            activeEl.contentEditable === 'true'
+        );
 
-            if (!isTyping) {
-                isTKeyHeld = true;
-            }
+        // T key for creating notes
+        if ((e.key === 't' || e.key === 'T') && !isTyping) {
+            isTKeyHeld = true;
+        }
+
+        // Copy: Ctrl/Cmd + C
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isTyping && selectedNoteId !== null) {
+            copySelectedNote();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Paste: Ctrl/Cmd + V
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isTyping && clipboardNote !== null) {
+            pasteNote();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Duplicate: Ctrl/Cmd + D
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !isTyping && selectedNoteId !== null) {
+            duplicateSelectedNote();
+            e.preventDefault();
+            e.stopPropagation();
         }
 
         // Delete or Backspace key to delete selected note
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            const activeEl = document.activeElement;
-            const isTyping = activeEl && (
-                activeEl.tagName === 'INPUT' ||
-                activeEl.tagName === 'TEXTAREA' ||
-                activeEl.contentEditable === 'true'
-            );
-
-            if (!isTyping && selectedNoteId !== null) {
-                removeNote(selectedNoteId);
-                e.preventDefault();
-                e.stopPropagation();
-            }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && !isTyping && selectedNoteId !== null) {
+            removeNote(selectedNoteId);
+            e.preventDefault();
+            e.stopPropagation();
         }
 
         // Escape to deselect

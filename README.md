@@ -1,6 +1,9 @@
 # ComfyUI Sticky Notes
 
-Figma/Miro 스타일의 스티키 노트 확장 기능입니다. 워크플로우에 메모를 추가하고 마크다운으로 서식을 지정할 수 있습니다.
+![ComfyUI Sticky Notes](./comfyui-sticky-notes.jpeg)
+
+- Figma/Miro 스타일의 스티키 노트 확장 기능입니다.
+- 워크플로우에 메모를 추가하고 마크다운으로 서식을 지정할 수 있습니다.
 
 ## 기능
 
@@ -61,15 +64,6 @@ git clone https://github.com/0dot77/comfyui-sticky-notes.git
 ```코드 블록```
 ```
 
-## 확인 방법
-
-1. ComfyUI를 시작하고 브라우저에서 엽니다
-2. 개발자 도구를 엽니다 (F12 또는 Cmd+Option+I)
-3. Console 탭에서 다음 메시지를 확인합니다:
-   ```
-   sticky-notes loaded - overlay attached to canvas parent
-   ```
-
-## 라이선스
+## License
 
 MIT License
